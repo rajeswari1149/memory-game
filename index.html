@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Card Game</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #1e1e2f; color: #fff; }
+    .header { margin-bottom: 20px; text-align: center; }
+    .header h1 { margin-bottom: 10px; }
+    .status { margin-top: 10px; font-size: 18px; }
+    .controls { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
+    .controls button, .controls select { padding: 10px 15px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; }
+    .controls button:hover { background: #444; color: #fff; }
+    .cards { display: grid; gap: 10px; }
+    .card { width: 80px; height: 100px; background: #444; border-radius: 8px; position: relative; transform-style: preserve-3d; transform: rotateY(0deg); transition: transform 0.4s ease; cursor: pointer; }
+    .card.flip { transform: rotateY(180deg); }
+    .card .front, .card .back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+    .card .front { background: #666; }
+    .card .back { transform: rotateY(180deg); background: #222; }
+    .congrats { margin-top: 20px; font-size: 24px; color: lightgreen; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Memory Card Game</h1>
+    <div class="status">Moves Left: <span id="movesLeft">12</span> | Time: <span id="time">0</span>s</div>
+  </div>
+  <div class="controls">
+    <button onclick="startNewGame()">Start New Game</button>
+    <select id="difficulty" onchange="startNewGame()">
+      <option value="4">Easy (4x4)</option>
+      <option value="6">Medium (6x6)</option>
+      <option value="8">Hard (8x8)</option>
+    </select>
+  </div>
+  <div class="cards" id="gameBoard"></div>
+  <div class="congrats" id="congratsMessage"></div>
+
+  <script>
+    let cardOne, cardTwo, disableBoard = false;
+    let matched = 0, totalPairs = 0, moves = 0, timer = 0, interval;
+
+    function generateIcons(count) {
+      const icons = ["face", "pets", "home", "star", "bolt", "cloud", "mood", "sports_soccer", "flight", "music_note", "emoji_events", "local_cafe", "beach_access", "cake", "directions_car", "headphones", "public", "camera"];
+      let selected = icons.slice(0, count);
+      return [...selected, ...selected].sort(() => Math.random() - 0.5);
+    }
+
+    function startNewGame() {
+      clearInterval(interval);
+      moves = timer = matched = 0;
+      document.getElementById("movesLeft").textContent = 12;
+      document.getElementById("time").textContent = timer;
+      document.getElementById("congratsMessage").textContent = "";
+
+      const size = parseInt(document.getElementById("difficulty").value);
+      totalPairs = (size * size) / 2;
+      const board = document.getElementById("gameBoard");
+      board.innerHTML = "";
+      board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      const icons = generateIcons(totalPairs);
+
+      icons.forEach(icon => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.innerHTML = `
+          <div class="front"><span class="material-icons">question_mark</span></div>
+          <div class="back"><span class="material-icons">${icon}</span></div>
+        `;
+        card.addEventListener("click", () => flipCard(card));
+        board.appendChild(card);
+      });
+
+      interval = setInterval(() => {
+        timer++;
+        document.getElementById("time").textContent = timer;
+      }, 1000);
+    }
+
+    function flipCard(card) {
+      if (disableBoard || card.classList.contains("flip") || card === cardOne || moves >= 12) return;
+
+      card.classList.add("flip");
+      if (!cardOne) {
+        cardOne = card;
+        return;
+      }
+
+      cardTwo = card;
+      disableBoard = true;
+      moves++;
+      document.getElementById("movesLeft").textContent = 12 - moves;
+
+      let icon1 = cardOne.querySelector(".back span").textContent;
+      let icon2 = cardTwo.querySelector(".back span").textContent;
+
+      if (icon1 === icon2) {
+        matched++;
+        cardOne = cardTwo = null;
+        disableBoard = false;
+        if (matched === totalPairs) {
+          clearInterval(interval);
+          document.getElementById("congratsMessage").textContent = `🎉 Congratulations! Completed in ${moves} moves and ${timer}s.`;
+        }
+      } else {
+        setTimeout(() => {
+          cardOne.classList.remove("flip");
+          cardTwo.classList.remove("flip");
+          cardOne = cardTwo = null;
+          disableBoard = false;
+        }, 1000);
+      }
+    }
+
+    window.onload = startNewGame;
+  </script>
+</body>
+</html>
